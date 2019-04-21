@@ -1,5 +1,10 @@
 ---
 title: "Introduction to population structure inference in R"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
 author: "Connor French"
 date: "4/21/2019"
 output: html_document
@@ -9,11 +14,24 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## R Markdown
+## Introduction
+The aim of this tutorial is to give you a head start in exploring structure in your SNP data. Some familiarity of the R language or command line is helpful, but not necessary. I've provided resources below for anyone new to R who want to develop their skills further. There are also links to tutorials that explore other population genetics goals, like estimating genetic variation, genetic divergence between populations, etc.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+This tutorial is split into four sections:
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+**Loading and pre-processing data**
+
+**Unsupervised clustering with PCA**
+
+**Finding the best number of populations with DAPC**
+
+**Mapping your results**
+
+We will be exploring the genetic structure of Anolis punctatus, an anole species from the Amazon and Atlantic Forest. Our data comes from Prates et al. 2018 (LINK): Local adaptation in mainland anole lizards: Integrating population history and genome-enviroment associations.
+
+All code can be run by copying and pasting the text in gray boxes into your R console. If you do not have R, you can download it HERE. If you have R and would like to work in the RStudio environment, you can download it HERE. For those familiar with R- I am following the tidyverse style of coding, which may look unfamiliar for those used to working in base R. I've provided a link at the bottom (and HERE) that can bring you up to speed and go further if you're interested in this reader and user-friendly coding style. Also, feel free to ask questions during the workshop! 
+
+One last thing before we get started. There are two files with the name "intro_population_structure" in this github repo. One has a .Rmd suffix, which you can use to generate the file you are reading. However, it can only be used if you have RStudio. For those who prefer not to use RStudio, I have supplied a file with a .R suffix that can be run in the normal R environment.
 
 ```{r cars}
 summary(cars)
