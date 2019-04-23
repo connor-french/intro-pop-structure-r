@@ -197,6 +197,8 @@ anole_map
 
 [Introductory R and RStudio](https://rstudio.cloud/learn/primers)
 
+[Drawing maps in R](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html)
+
 [DAPC tutorial](http://adegenet.r-forge.r-project.org/files/tutorial-dapc.pdf)
 
 [Basic population genetic statistics in R](https://popgen.nescent.org/StartSNP.html)
