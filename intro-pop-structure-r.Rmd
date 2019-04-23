@@ -192,3 +192,14 @@ anole_map <- ggplot(data = sa_map) +
 anole_map
 ```
 
+
+## Resources
+
+[Introductory R and RStudio](https://rstudio.cloud/learn/primers)
+
+[DAPC tutorial](http://adegenet.r-forge.r-project.org/files/tutorial-dapc.pdf)
+
+[Basic population genetic statistics in R](https://popgen.nescent.org/StartSNP.html)
+
+[sNMF](http://membres-timc.imag.fr/Olivier.Francois/snmf/index.htm)
+
