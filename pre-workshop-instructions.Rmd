@@ -1,0 +1,14 @@
+---
+title: "Pre-workshop instructions"
+author: "Connor French"
+knit: (function(input_file, encoding) {
+  out_dir <- 'docs';
+  rmarkdown::render(input_file,
+ encoding=encoding,
+ output_file=file.path(dirname(input_file), out_dir, 'pre-workshop-instructions.pdf'))})
+date: "7/1/2020"
+output: pdf_document
+---
+
+
+Filling out instructions soon
