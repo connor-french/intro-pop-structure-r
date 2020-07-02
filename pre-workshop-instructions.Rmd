@@ -1,14 +1,61 @@
 ---
 title: "Pre-workshop instructions"
-author: "Connor French"
+author: 
+- "Connor French  \n[connor-french.com](connor-french.com)"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
  encoding=encoding,
  output_file=file.path(dirname(input_file), out_dir, 'pre-workshop-instructions.pdf'))})
-date: "7/1/2020"
 output: pdf_document
 ---
 
+Below you will find all of the necessary software to install for the workshop *Exploring population structure in R with adegenet and sNMF*. Please try to install this before the workshop, and don't hesitate to email me with any problems at `french.connor.m@gmail.com`. The workshop tutorial is located [here](https://connor-french.github.io/intro-pop-structure-r/), but I would recommend waiting to check it out until the day of the workshop- I'm making some major changes from the last version.
 
-Filling out instructions soon
+## Required and suggested software
+[R v3.6.x or above](https://cran.r-project.org/). R is a programming language well-suited for data science and has a lot of great packages specifically for working with genetic data. R 4.0.x is the latest version, but some people have been having headaches with it. I'd recommend sticking with R v3.6.x.  
+
+[RStudio IDE (not necessary, but nice to have)](https://rstudio.com/products/rstudio/). This is a great interactive development environment for coding in R (and can also code in other languages like Python). Think of it as R's version of Jupyter Notebook. Versioning doesn't matter so much with this. If you have never used it before, I'd recommend playing around with it and skim [this cheatsheet](https://github.com/rstudio/cheatsheets/raw/master/rstudio-ide.pdf) to familiarize yourself with the layout.
+
+## Packages
+[vcfR](https://cran.r-project.org/web/packages/vcfR/vignettes/intro_to_vcfR.html). We're using this package to read in the VCF file and convert the file format. It's a nice package for converting among file formats and manipulating VCFs. Run the code below to install the package:
+```{r, eval=FALSE}
+install.packages("vcfR")
+```
+
+[adegenet](http://adegenet.r-forge.r-project.org/). We're using this package for running the Discriminant Analysis of Principal Components, but is a nice swiss-army knife genetic analysis package. 
+```{r, eval=FALSE}
+install.packages("adegenet")
+```
+
+[LEA](http://membres-timc.imag.fr/Olivier.Francois/LEA/index.htm). We're using this package for running the sNMF analysis for estimating admixture coefficients. This is the trickiest package to install.  
+If you have R v4.0.x, use this:
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("LEA")
+```
+
+If you have R v3.6.x, you need to install BiocManager version 3.10. If you have an older version of R and for some reason can't update it, replace `version = "3.10"` with the correct version number from [this list](https://www.bioconductor.org/about/release-announcements/).
+```{r, eval=FALSE}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install(version = "3.10")
+
+BiocManager::install("LEA")
+```
+
+
+
+[tidyverse](https://www.tidyverse.org/). We're using this suite of packages for data manipulation and plotting. The tidyverse is an ecosystem of R packages for data science that make working with tabular data easier. 
+```{r, eval=FALSE}
+install.packages("tidyverse")
+```
+
+[rnaturalearth](https://docs.ropensci.org/rnaturalearth/). We're using this package to obtain a basemap for mapping the results. 
+```{r, eval=FALSE}
+install.packages("rnaturalearth")
+```
+
+
