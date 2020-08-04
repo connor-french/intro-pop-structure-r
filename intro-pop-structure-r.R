@@ -1,105 +1,245 @@
-## ----setup, include=FALSE------------------------------------------------
-knitr::opts_chunk$set(echo = TRUE)
-
-
-## ----message=FALSE-------------------------------------------------------
-#Install packages. Remove any you already have installed
-pkgs <-
-  c("adegenet",
-    "vcfR",
-    "dplyr",
-    "ggplot2",
-    "stringr",
-    "rnaturalearth")
-#install.packages(pkgs)
-
+#' ---
+#' title: "Introduction to population structure inference in R"
+#' knit: (function(input_file, encoding) {
+#'   out_dir <- 'docs';
+#'   rmarkdown::render(input_file,
+#'  encoding=encoding,
+#'  output_file=file.path(dirname(input_file), out_dir, 'index.html'))})
+#' author: "Connor French"
+#' date: "`r Sys.Date()`"
+#' output: html_document
+#' ---
+#' 
+#' # Introduction
+#' 
+#' Before we get started, download the [pre-workshop instructions]()
+#' 
+#' The aim of this tutorial is to give you a head start in exploring structure in your SNP data. Some familiarity of the R language or command line is helpful, but not necessary. I've provided resources at the end for anyone new to R who want to develop their skills further. There are also links to tutorials that explore other population genetics analysis, like estimating genetic variation, genetic divergence between populations, etc.
+#' 
+#' This tutorial is split into four sections:
+#' 
+#' **Loading and pre-processing data**
+#' 
+#' **DAPC for quick population structure inference**
+#' 
+#' **sNMF for admixture inference**
+#' 
+#' **Mapping your results**
+#' 
+#' 
+#' We will be exploring the genetic structure of *Anolis punctatus*, an anole species from the Amazon and Atlantic Forest. Our data comes from [Prates et al. 2018, Local adaptation in mainland anole lizards: Integrating population history and genome-enviroment associations](https://onlinelibrary.wiley.com/doi/full/10.1002/ece3.4650). We want to see if the genetic structure we infer matches that found in Prates et al. (middle pane). 
+#' 
+#' <img src="https://photos.smugmug.com/HerpGalleries/Peru-Amazon-2013-1/i-58tqn64/1/b4bc26eb/L/Anolis%20punctatus%20Amazon%20Green%20Anole%20MS-L.jpg" alt="*Anolis punctatus*. Source: https://cages.smugmug.com/HerpGalleries/Peru-Amazon-2013-1/i-58tqn64" width="200"/>
+#' 
+#' <img src="https://wol-prod-cdn.literatumonline.com/cms/attachment/9880d5b3-9faf-48de-8376-9fad84da4319/ece34650-fig-0001-m.png" alt="Focusing on the "All SNPs" data set for *A. punctatus*. width="400"/>
+#' 
+#' **Add a map of the anoles here**
+#' 
+#' All code can be run by copying and pasting the text in gray boxes into your R console. If you do not have R, you can download it [here](https://cloud.r-project.org/). If you have R and would like to work in the RStudio environment, you can download it [here](https://www.rstudio.com/products/rstudio/download/). For those familiar with R- I am following the [tidyverse](https://www.tidyverse.org/) style of coding, which may look unfamiliar for those used to working in base R. I've provided a link at the bottom (and [here](https://rstudio.cloud/learn/primers)) that can bring you up to speed and go further if you're interested in this reader and user-friendly coding style. Also, feel free to ask questions during the workshop! 
+#' 
+#' One last thing before we get started. There are two files with the name "intro_population_structure" in this [github repo](https://github.com/connor-french/intro-pop-structure-r). One has a .Rmd suffix, which you can use to generate the file you are reading. However, it can only be used if you have RStudio. For those who prefer not to use RStudio, I have supplied a file with a .R suffix that can be run in the normal R environment. To download these files, you should see a green button on the repository home page that says "clone or download". If you know how to use git, you can clone it, otherwise download the zip file with all of the code and unzip it in a place you'll be able to find again.
+#' 
+#' # Tutorial {.tabset}
+#' 
+#' ## Loading and preprocessing data
+#' 
+#' Before we can load in our data, we need to install and load the necessary packages into our environment. Feel free to remove from the list any packages that don't need to be installed. You may notice that the install.packages() function is hashed out- meaning that this line of code will not be run. I hashed out this function because it upsets RMarkdown and can make you unnecessarily have to restart R and update packages. To install your R packages, remove the hash in front of the function before running the code. After our packages have been installed, they're still not ready to be used. We now need to load them into our R environment. We can do this with the library() function.
+#' 
+## ----message=FALSE---------------------------------
 #load packages into environment
-library(adegenet) #for pca, dapc
-library(vcfR) #for reading in data and data conversion
-library(dplyr) #for manipulating data
-library(stringr) #for some text manipulation
-library(ggplot2) #for plotting
-library(rnaturalearth) #for our basemap
+library(adegenet) # for pca, dapc
+library(vcfR) # for reading in data and data conversion
+library(tidyverse) # for manipulating and plotting data
+library(LEA) # For sNMF
+library(rnaturalearth) #for mapping
 
-
-## ----message=FALSE, results="hide"---------------------------------------
+#' 
+#' 
+#' 
+#' We then take a quick look at the anole_genlight object to see if the data we loaded is what we expected. We also need to read in a population assignment file, assigning *a priori* defined populations, to see if our results agree with Prates et al. (2018)'s. 
+#' 
+#' 
+#' Now we can load in our data! The `read.vcfR()` function from the vcfR package allows us to read in a vcf file containing the SNPs we're interested in. The `vcfR2genlight()` function converts the vcf into the genlight format. The genlight format is a compact representation of the genotype matrix that `adegenet` uses to efficiently process the data.
+## ----message=FALSE, results="hide"-----------------
 #read in anolis vcf file that we're pulling from github and convert to genlight object
-anole_genlight <-
+anole_vcf <-
   read.vcfR(
     "https://github.com/ivanprates/2018_Anolis_EcolEvol/blob/master/data/VCFtools_SNMF_punctatus_t70_s10_n46/punctatus_t70_s10_n46_filtered.recode.vcf?raw=true"
-  ) %>%
-  vcfR2genlight()
-
-#get the population names for your samples. These can be collection site names, a priori hypotheses for the population structure, etc. 
-pops <-
-  read.csv(
-    "https://github.com/ivanprates/2018_Anolis_EcolEvol/raw/master/data/plot_order_punctatus_n46.csv"
   )
+anole_genlight <- vcfR2genlight(anole_vcf)
 
-
-## ------------------------------------------------------------------------
+#' 
+#' Lets take a quick look at a summary of our SNP data. Everything looks right, according to *Prates et al*! There are 3,249 SNPs, with 7.13% missing data for 46 individuals. 
+## --------------------------------------------------
 #quick summary of genlight to see what info we have
 anole_genlight
 
+#' 
+#' Another important component of the analysis is population metadata. These can be locality names, *a prior* hypotheses for population structure (e.g. whether the individuals are on one side of a mountain or not), or other information that you think could help you interpret your results. In this case, we're comparing our inference against *Prates et al.*'s findings. You're going to read in the results of their population structure inference to compare results with.  
+#' 
+#' Here, they have an individual ID column, the position they plotted the individual in their admixture barplot, and the population name they assigned the individual.
+## --------------------------------------------------
+pops <-
+  read_csv(
+    "https://github.com/ivanprates/2018_Anolis_EcolEvol/raw/master/data/plot_order_punctatus_n46.csv"
+  )
 
-## ------------------------------------------------------------------------
-#centering our data is important. We are retaining 3 principal component axes (nf = 3). This is a somewhat arbitrary decision and you can change the number if you feel like it.
-anole_pca <- glPca(anole_genlight, center = TRUE, nf = 3)
+pops
 
-#tidy the data for plotting
-plot_data <-
-  as_tibble(anole_pca$scores, rownames = "individual") %>%
-  mutate(population = pops$pop) #make a column for populations. 
+#' 
+#' 
+#' ## DAPC for quick population structure inference
+#' 
+#' You may have heard of the programs [STRUCTURE](https://web.stanford.edu/group/pritchardlab/structure.html), [ADMIXTURE](http://software.genetics.ucla.edu/admixture/), or [sNMF](http://membres-timc.imag.fr/Olivier.Francois/snmf/index.htm), which seek to find the best number of populations (K) present in your data. Discriminant analysis of principal components (DAPC) shares a similar goal, but doesn't assume an evolutionary model like STRUCTURE or ADMIXTURE. sNMF is similar in spirit to DAPC, as it is model-free, but uses different algorithmic machinery. One major difference is that DAPC does not assign mixed ancestry- if there is ambiguity in population assignment, cluster colors won't indicate it. DAPC is best used to gain a quick understanding of different levels of structure in your data. All of these methods are exploratory, and should be treated as such. Don't fret over ambiguous results too much- use it as an opportunity to explore your data. 
+#' 
+#' Again, the aim of a DAPC analysis is to find the best number of clusters in your data. The find.clusters() method first performs a PCA on the data, then performs a clustering algorithm (k-means) that considers a range of potential K values to group the data by. The goodness of fit of each K value is indicated by a BIC score, where the lowest BIC indicates the best fit. The dapc() function performs a discriminant analysis with the chosen K value, finding the axis of variation that best discriminates among the groups. This why you'll typically see stronger grouping in a DAPC analysis versus a PCA.
+#' 
+#' The functions will give you visualizations of each step in the process and prompt you to choose the number of PCs and the number of clusters. You should retain as many PCs as your computer processor will allow. In this case, with a modest number of individuals and loci, retaining all of the PCs (46) is reasonable- the program runs very quickly.  
+#' 
+#' Picking the number of clusters to retain is a tricky exercise. First, there are multiple information criteria to choose from for deciding- Bayesian Information Criterion (BIC), Akaike Information Criterion (AIC), and within-groups sum of squares (WSS). In my experience, BIC shows larger differences between K values, but all statistics generally tell the same story.  
+#' 
+#' The "elbow" rule is a good rule of thumb for choosing a K value, but oftentimes an elbow isn't evident in the information criterion plot, or there are multiple elbows. I go more into depth about this in the slide presentation, but I'll emphasize it here- a "best K value" doesn't exist! Pick a few, visualize the results, and interpret the results in the context of your study.  
+#' 
+#' For this exercise, let's choose to retain 3 clusters, the same as *Prates et al*. 
+## ---- eval=FALSE-----------------------------------
+## num_clust <- find.clusters(anole_genlight)
 
-#plot PC scores colored according to hypotheses population
-pca_plot <-
-  ggplot(plot_data, aes(
-    x = PC1,
-    y = PC2,
-    fill = population,
-    size = 3
-  )) +
-  geom_point(shape = 21) +
-  scale_fill_viridis_d(direction = -1) + #reverse the color direction to better reflect Prates et al. 2018
-  guides(size = FALSE,  #don't want a legend for the size
-         fill = guide_legend(override.aes = list(size = 3))) + #the point sizes in the legend are too small, so I'm increasing their size
-  theme_bw(base_size = 16) #increase legend font size and choose a more pleasant theme
-pca_plot
+#' 
+#' 
+#' Now, run the DAPC using the `dapc()` function. You have two options here. First, choose the number of PCs to retain. This choice is important as choosing too many can result in overfitting, while too few can result in overdispersion. A rule of thumb is to look at where the cumulative variance explained by the PCs begins to level off. It's hard to tell with this data set, but 10 PCs looks reasonable. As always, this is an exploratory analysis, so try out a few options with your own data set and see what the results look like.  
+#' 
+#' Second, choose the number of discriminant functions to retain. For small numbers of clusters, retaining all of them is reasonable. However, as the number of clusters increases (tens of axes), the information contained within each axis decreases, so choosing the first few axes is a better option. With only three clusters, retaining both disciminant functions is reasonable.
+#' 
+## --------------------------------------------------
+anole_dapc <- dapc(anole_genlight, num_clust$grp)
 
+#' 
+#' 
+#' Now, let's plot the results! First, adegenet's default plotting method. It is highly customizable (see [this tutorial](http://adegenet.r-forge.r-project.org/files/tutorial-dapc.pdf)) for all of the options), but I like a little more flexibility. For instance, it's not intuitive how to map an *a priori* clustering hypothesis using their method.
+## --------------------------------------------------
+scatter(anole_dapc, posi.da="bottomleft")
 
-## ------------------------------------------------------------------------
-#find the best number of clusters. you have options here, so pay attention!
-#Rule of thumb for me is to use most of the PC axes- k-means clustering likes as much info as it can get. Play around with setting n.pca to different values and see what you get.
-num_clust <- find.clusters(anole_genlight, n.pca = 30, n.clust = 3)
-
-#run a dpca, specifying the best number of clusters. you have more options!
-#use fewer PCs for plotting (it's somewhat arbitrary- I pick a number that makes the points not too clustered together. In this case, 10 seems alright). Play around with setting n.pca to different values and see what you get.
-anole_dapc <- dapc(anole_genlight, num_clust$grp, n.pca = 10, n.da = 3)
-
-#tidy the data for plotting. adegenet has the scatter() function for plotting, but I don't like it.
-plot_data_dapc <-
+#' 
+#' 
+#' The `anole_dapc` object contains all of the information you need to use a more flexible plotting software, so we are going to do that here with `ggplot2`.  
+#' 
+#' First, we need to extract and reshape the data to make it amenable to plotting. We need three pieces of information to do this- the individual coordinates across the first two linear discriminant axes (`anole_dapc$ind.coord`), the population assignment of each individual (`pops$pop`), and the cluster assignment (`anole_dapc$grp`). 
+## --------------------------------------------------
+#tidy the data for plotting. 
+dapc_data_df <-
+  # as_tibble() converts the ind.coord matrix to a special data frame called a tibble. 
   as_tibble(anole_dapc$ind.coord, rownames = "individual") %>%
+  # mutate changes or adds columns to a data frame. Here, we're adding the population and group assignment columns to the data frame
   mutate(population = pops$pop,
-         group = anole_dapc$grp) #make a column for populations
+         group = anole_dapc$grp)
 
+dapc_data_df
+
+#' 
+#' 
+#' Now that we have an appropriate data frame, we can plot the data! This is using the `ggplot2` package from the `tidyverse`. We're making a scatterplot with the first LD on the x-axis and the second LD on the y-axis, and coloring each point according to the population name given by `Prates et al.`. The rest of the options change the look of the plot. If you're interested in learning more about data wrangling and data visualization in R, check out these excellent [interactive primers](https://rstudio.cloud/learn/primers). It looks like our findings agree with `Prates et al`!
+## --------------------------------------------------
 #plot the data. Can color the points according to your pre-defined populations and the dapc groups to see if it conforms to your hypothesis.
 dapc_plot <-
-  ggplot(plot_data_dapc, aes(
+  ggplot(dapc_data_df, aes(
     x = LD1,
     y = LD2,
-    fill = population,
-    size = 3
+    fill = population
   )) +
-  geom_point(shape = 21) +
-  scale_fill_viridis_d(direction = -1) + #reverse the color direction to better reflect Prates et al. 2018
-  guides(size = FALSE,  #don't want a legend for the size
-         fill = guide_legend(override.aes = list(size = 3))) +
+  geom_point(shape = 21, size = 3) +
+  #reverse the color direction to better reflect Prates et al. 2018
+  scale_fill_viridis_d(direction = -1) + 
   theme_bw(base_size = 16)
+
 dapc_plot
 
+#' 
+#' ## sNMF for admixture inference
+#' Now, let's use another approach for inferring population structure and admixture. `sNMF` requires a .geno file as input. This format keeps the individuals as columns and their genotypes as rows, where 2 indicates homozygous for the reference allele, 1 indicates heterozygous, 0 indicates homozygous for the alternate allele, and 9 indicates missing data.
+#' 
+#' There are many ways to get a .geno file from a vcf or genotype matrix (`LEA` has a function, `vcf2geno` that converts a vcf to a .geno file, but it requires writing the vcf file to your disk, so I'm avoiding that). Here's a way to convert from the `vcfR` object to the .geno format using the `vcfR` package and some data wrangling.
+## --------------------------------------------------
+# first need to code the genotypes according to the .geno system
+anole_tidy <- anole_vcf %>% 
+  extract_gt_tidy() %>% 
+  select(-gt_DP, -gt_CATG, -gt_GT_alleles) %>% 
+  mutate(gt1 = str_split_fixed(gt_GT, "/", n = 2)[,1],
+         gt2 = str_split_fixed(gt_GT, "/", n = 2)[,2],
+         geno_code = case_when(
+           # homozygous for reference allele = 2
+           gt1 == 0 & gt2 == 0 ~ 2,
+           # heterozygous = 1
+           gt1 == 0 & gt2 == 1 ~ 1,
+           gt1 == 1 & gt2 == 0 ~ 1,
+           # homozygous for alternate allele = 0
+           gt1 == 1 & gt2 == 1 ~ 0,
+           # missing data = 9
+           gt1 == "" | gt2 == "" ~ 9
+         )) %>% 
+  select(-gt_GT, -gt1, -gt2)
+
+# now I need to rotate the table so individuals are columns and genotypes are rows
+anole_geno <- anole_tidy %>% 
+  pivot_wider(names_from = Indiv, values_from = geno_code) %>% 
+  select(-Key)
+
+anole_geno
+
+#' 
+#' sNMF requires that files be written to your computer, so you're going to write the .geno file to a directory of your choice. Replace the path I provide with the path you want to write to. Make sure the file is called "anole_geno.geno".
+## --------------------------------------------------
+write.table(anole_geno, 
+            "~/Desktop/anole_geno.geno",
+            col.names = FALSE,
+            row.names = FALSE,
+            sep = "")
+
+#' 
+#' 
+#' Now to run an sNMF analysis! It will write to the folder where your .geno file is located.
+## --------------------------------------------------
+anole_snmf <- snmf("~/Desktop/anole_geno.geno",
+                   K = 1:5,
+                   entropy = TRUE,
+                   repetitions = 5,
+                   project = "new",
+                   alpha = 100,
+                   percentage = 0.1
+                  )
+
+#' 
+## --------------------------------------------------
+plot(anole_snmf, cex = 1.2, col = "lightblue", pch = 19)
+
+#' 
+#' Plot a barchart
+## --------------------------------------------------
+# get the cross-entropy of the 10 runs for K = 3
+ce = cross.entropy(anole_snmf, K = 3)
 
 
-## ------------------------------------------------------------------------
+# select the run with the lowest cross-entropy for K = 3
+best = which.min(ce)
+
+# display the Q-matrix
+my.colors <- c("tomato", "lightblue", 
+              "olivedrab")
+
+barchart(anole_snmf, K = 3, run = best, 
+        border = NA, space = 0, col = my.colors, 
+        xlab = "Individuals", ylab = "Ancestry proportions", 
+        main = "Ancestry matrix") -> bp
+        
+axis(1, at = 1:length(bp$order), 
+    labels = bp$order, las = 3, cex.axis = .4)
+
+#' 
+#' 
+#' ## Mapping your results
+#' 
+#' Now we'll plot our population structure onto a map to see how genetic diversity is geographically structured. First we have to read in the locality data, which contains latitude and longitude coordinates, then we're merging the locality data and the dapc results by the individual IDs to facilitate plotting. Next, we read in a basemap of South America to plot the locality data on top of. Finally, we plot everything with ggplot2! There are many options and packages to facilitate making maps in R, and I've provided a few links at the bottom that you can explore further.
+#' 
+## --------------------------------------------------
 #read in the locality data and merge it with the genetic data
 anole_locs <-
   read.csv(
@@ -132,3 +272,18 @@ anole_map <- ggplot(data = sa_map) +
   theme_bw(base_size = 16)
 anole_map
 
+#' 
+#' 
+#' ## Resources
+#' 
+#' [Introductory R and RStudio](https://rstudio.cloud/learn/primers)
+#' 
+#' [Drawing maps in R](https://www.r-spatial.org/r/2018/10/25/ggplot2-sf.html)
+#' 
+#' [DAPC tutorial](http://adegenet.r-forge.r-project.org/files/tutorial-dapc.pdf)
+#' 
+#' [Basic population genetic statistics in R](https://popgen.nescent.org/StartSNP.html)
+#' 
+#' 
+#' 
+#' 
