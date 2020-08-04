@@ -1,5 +1,5 @@
 ---
-title: "Introduction to population structure inference in R"
+title: "Exploring population structure in R with adegenet and sNMF"
 knit: (function(input_file, encoding) {
   out_dir <- 'docs';
   rmarkdown::render(input_file,
@@ -13,15 +13,12 @@ output:
     toc_float: TRUE
 ---
 
-# Introduction
-
-Before we get started, download the pre-workshop instructions and install the necessary software.
 ```{r, echo=FALSE}
 library(downloadthis)
 
 download_link(
   link = "https://github.com/connor-french/intro-pop-structure-r/raw/master/docs/pre-workshop-instructions.pdf",
-  button_label = "Download instructions",
+  button_label = "Pre-workshop instructions",
   button_type = "danger",
   has_icon = TRUE,
   icon = "fa fa-save",
@@ -29,6 +26,19 @@ download_link(
 )
 ```
 
+```{r, echo=FALSE}
+download_file(
+  path = "/Users/connorfrench/Dropbox/Old_Mac/Science/tutorials/intro-pop-structure-r/intro-pop-structure-r.R",
+  button_label = "R script",
+  button_type = "danger",
+  has_icon = TRUE,
+  icon = "fa fa-save",
+  self_contained = FALSE
+)
+```
+
+
+# Introduction
 
 The aim of this tutorial is to give you a head start in exploring structure in your SNP data. Some familiarity of the R language or command line is helpful, but not necessary. I've provided resources at the end for anyone new to R who want to develop their skills further. There are also links to tutorials that explore other population genetics analysis, like estimating genetic variation, genetic divergence between populations, etc.
 
@@ -231,7 +241,7 @@ write.table(anole_geno,
 
 
 Now to run an sNMF analysis! It will write to the folder where your .geno file is located.
-```{r}
+```{r, collapse=FALSE,  results="hide"}
 anole_snmf <- snmf("~/Desktop/anole_geno.geno",
                    K = 1:5,
                    entropy = TRUE,
@@ -241,6 +251,7 @@ anole_snmf <- snmf("~/Desktop/anole_geno.geno",
                    percentage = 0.1
                   )
 ```
+
 
 ```{r}
 plot(anole_snmf, cex = 1.2, col = "lightblue", pch = 19)
