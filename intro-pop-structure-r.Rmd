@@ -30,7 +30,7 @@ download_link(
 library(downloadthis)
 
 download_file(
-  path = "/Users/connorfrench/Dropbox/Old_Mac/Science/tutorials/intro-pop-structure-r/intro-pop-structure-r.R",
+  path = "/Users/connorfrench/Dropbox/Old_Mac/Science/tutorials/intro-pop-structure-r/intro-pop-structure-r-2.R",
   button_label = "R script",
   button_type = "danger",
   has_icon = TRUE,
